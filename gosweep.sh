@@ -13,13 +13,13 @@ set -e
 # Automatic checks
 test -z "$(gofmt -l -w .     | tee /dev/stderr)"
 test -z "$(goimports -l -w . | tee /dev/stderr)"
-test -z "$(golint .          | tee /dev/stderr)"
+#test -z "$(golint .          | tee /dev/stderr)"
 test -z "$(ineffassign .     | tee /dev/stderr)"
 
 DIR_SOURCE="$(find . -maxdepth 10 -type f -not -path '*/vendor*' -name '*.go' | xargs -I {} dirname {} | sort | uniq)"
 
 go vet ${DIR_SOURCE}
-env GORACE="halt_on_error=1" go test -short -race ${DIR_SOURCE}
+#env GORACE="halt_on_error=0" go test -short -race ${DIR_SOURCE}
 
 
 for dir in ${DIR_SOURCE};
@@ -34,7 +34,7 @@ echo "mode: count" > profile.cov
 
 for dir in ${DIR_SOURCE};
 do
-    go test -short -covermode=count -coverprofile=$dir/profile.tmp $dir
+    go test -covermode=count -coverprofile=$dir/profile.tmp $dir
     if [ -f $dir/profile.tmp ]
     then
         cat $dir/profile.tmp | tail -n +2 >> profile.cov
@@ -42,16 +42,4 @@ do
     fi
 done
 
-go tool cover -func profile.cov
-
-# To submit the test coverage result to coveralls.io,
-# use goveralls (https://github.com/mattn/goveralls)
-
-if [ -n "${CI_SERVICE+1}" ]; then
-    echo "goveralls with" $CI_SERVICE
-    if [ -n "${COVERALLS_TOKEN+1}" ]; then
-        goveralls -coverprofile=profile.cov -service=$CI_SERVICE -repotoken $COVERALLS_TOKEN
-    else
-        goveralls -coverprofile=profile.cov -service=$CI_SERVICE
-    fi
-fi
+go tool cover -html=profile.cov -o coverage.html
